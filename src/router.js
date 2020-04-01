@@ -1,97 +1,97 @@
 // import Vue from 'vue'
 // import Router from 'vue-router'
-import Home from './views/front/Home.vue'
-import Login from './views/front/Login.vue'
-import Ktv from './views/front/Ktv.vue'
-import OrderHistory from './views/front/OrderHistory.vue'
-import Vip from './views/admin/Vip.vue'
-import Admin from './views/admin/Admin.vue'
+import Home from "./views/front/Home.vue";
+import Login from "./views/front/Login.vue";
+import Ktv from "./views/front/Ktv.vue";
+import OrderHistory from "./views/front/OrderHistory.vue";
+import Vip from "./views/admin/Vip.vue";
+import Admin from "./views/admin/Admin.vue";
 
-Vue.use(VueRouter)
+Vue.use(VueRouter);
 
 export default new VueRouter({
   // mode: 'history',
   base: process.env.BASE_URL,
   routes: [
     {
-      path: '/',
-      name: 'home',
-      redirect: '/ktv',
+      path: "/",
+      name: "home",
+      redirect: "/ktv",
       component: Home,
       children: [
         {
-          path: '/ktv',
-          name: 'ktv',
+          path: "/ktv",
+          name: "ktv",
           component: Ktv
         },
         {
-          path: '/order',
-          name: 'order',
+          path: "/order",
+          name: "order",
           component: OrderHistory
         },
         {
-          path: '/vip',
-          name: 'vip',
+          path: "/vip",
+          name: "vip",
           component: Vip
         }
       ]
     },
     {
-      path: '/login',
-      name: 'login',
+      path: "/login",
+      name: "login",
       component: Login
     },
     {
-      path: '/admin',
-      name: 'admin',
+      path: "/admin",
+      name: "admin",
       component: Admin,
       children: [
         {
-          path: 'report',
-          name: 'report',
-          component: () => import('@/views/admin/reportForm')
+          path: "report",
+          name: "report",
+          component: () => import("@/views/admin/reportForm")
         },
         {
-          path: 'baseinfo',
-          name: 'baseinfo',
-          component: () => import('@/views/admin/BaseInfo.vue'),
+          path: "baseinfo",
+          name: "baseinfo",
+          component: () => import("@/views/admin/BaseInfo.vue"),
           children: [
             {
-              path: 'roominfo',
-              name: 'roominfo',
-              component: () => import('@/views/admin/RoomInfo.vue'),
+              path: "roominfo",
+              name: "roominfo",
+              component: () => import("@/views/admin/RoomInfo.vue")
             },
             {
-              path: 'roomtype',
-              name: 'roomtype',
-              component: () => import('@/views/admin/RoomType.vue'),
+              path: "roomtype",
+              name: "roomtype",
+              component: () => import("@/views/admin/RoomType.vue")
             },
             {
-              path: 'goodsinfo',
-              name: 'goodsinfo',
-              component: () => import('@/views/admin/GoodsInfo.vue'),
+              path: "goodsinfo",
+              name: "goodsinfo",
+              component: () => import("@/views/admin/GoodsInfo.vue")
             },
             {
-              path: 'packageinfo',
-              name: 'packageinfo',
-              component: () => import('@/views/admin/PackageInfo.vue'),
+              path: "packageinfo",
+              name: "packageinfo",
+              component: () => import("@/views/admin/PackageInfo.vue")
             },
             {
-              path: 'unitinfo',
-              name: 'unitinfo',
-              component: () => import('@/views/admin/UnitInfo.vue'),
+              path: "unitinfo",
+              name: "unitinfo",
+              component: () => import("@/views/admin/UnitInfo.vue")
             }
           ]
         },
         {
-          path: 'vip',
-          name: 'vip',
-          component: () => import('@/views/admin/Vip.vue')
+          path: "vip",
+          name: "vip",
+          component: () => import("@/views/admin/Vip.vue")
         },
         {
-          path: 'user',
-          name: 'user',
-          component: () => import('@/views/admin/User.vue')
+          path: "user",
+          name: "user",
+          component: () => import("@/views/admin/User.vue")
         }
       ]
     }
@@ -104,4 +104,4 @@ export default new VueRouter({
     //   component: () => import(/* webpackChunkName: "about" */ './views/About.vue')
     // }
   ]
-})
+});

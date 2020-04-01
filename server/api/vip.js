@@ -1,287 +1,352 @@
-const Router = require('koa-router')
-const router = new Router()
-const query = require('../database/init')
-const checkRoot = require('./root')
-const sendMessage = require('./sendMessage')
-let verifyCodeMap = {}
+const Router = require("koa-router");
+const router = new Router();
+const query = require("../database/init");
+const checkRoot = require("./root");
+const sendMessage = require("./sendMessage");
+let verifyCodeMap = {};
 
 function createVerifyCode(count = 6) {
-  let verifyCode = ''
+  let verifyCode = "";
   for (let i = 0; i < count; i++) {
-    verifyCode += Math.floor(Math.random()*10)
+    verifyCode += Math.floor(Math.random() * 10);
   }
-  return verifyCode
+  return verifyCode;
 }
 
 function clearVerifyCode(phone) {
-  verifyCodeMap[phone] && clearTimeout(verifyCodeMap[phone].timeoutTime)
+  verifyCodeMap[phone] && clearTimeout(verifyCodeMap[phone].timeoutTime);
   verifyCodeMap.timeoutTime = setTimeout(() => {
-    delete verifyCodeMap[phone]
-  }, 500000)
+    delete verifyCodeMap[phone];
+  }, 500000);
 }
 
 function countVerifyCode(phone) {
   verifyCodeMap[phone].intervalTime = setInterval(function() {
-    verifyCodeMap[phone].count += 1
+    verifyCodeMap[phone].count += 1;
     if (verifyCodeMap[phone].count >= 60) {
-      clearTimeout(verifyCodeMap[phone].intervalTime)
+      clearTimeout(verifyCodeMap[phone].intervalTime);
     }
-  }, 1000)
+  }, 1000);
 }
 
-router.post('/sendVerifyCode', async (ctx) => {
+router.post("/sendVerifyCode", async ctx => {
   try {
-    if (!checkRoot(ctx, true)) { return false }
+    if (!checkRoot(ctx, true)) {
+      return false;
+    }
 
-    const data = ctx.request.body.data
-    const phone = data.phone
-    const login = data.login
+    const data = ctx.request.body.data;
+    const phone = data.phone;
+    const login = data.login;
     if (!login) {
-      const result = await query(`SELECT * FROM vip WHERE phone = ?`, [phone])
+      const result = await query(`SELECT * FROM vip WHERE phone = ?`, [phone]);
       if (result.length !== 0) {
-        ctx.body = {code: 500, message: `手机号 ${phone} 已注册`}
-        return
+        ctx.body = { code: 500, message: `手机号 ${phone} 已注册` };
+        return;
       }
     }
     if (verifyCodeMap[phone] && verifyCodeMap[phone].count < 60) {
-      ctx.body = {code: 500, message: '请稍后再发送'}
-      return
+      ctx.body = { code: 500, message: "请稍后再发送" };
+      return;
     }
-    const verifyCode = createVerifyCode()
-    verifyCodeMap[phone] = {verifyCode}
-    verifyCodeMap[phone].count = 0
-    countVerifyCode(phone)
-    clearVerifyCode(phone)
-    console.log('verifyCode', verifyCode)
-    const sendResult = await sendMessage(phone, verifyCode)
+    const verifyCode = createVerifyCode();
+    verifyCodeMap[phone] = { verifyCode };
+    verifyCodeMap[phone].count = 0;
+    countVerifyCode(phone);
+    clearVerifyCode(phone);
+    console.log("verifyCode", verifyCode);
+    const sendResult = await sendMessage(phone, verifyCode);
     if (sendResult.code == 0) {
-      ctx.body = {code: 200, message: '发送成功'}
+      ctx.body = { code: 200, message: "发送成功" };
     } else {
-      ctx.body = {code: 500, message: sendResult.message}
+      ctx.body = { code: 500, message: sendResult.message };
     }
-  } catch(err) {
-    throw new Error(err)
+  } catch (err) {
+    throw new Error(err);
   }
-})
+});
 
-router.post('/registerVip', async (ctx) => {
+router.post("/registerVip", async ctx => {
   try {
-    const data = ctx.request.body.data[0]
-    const phone = data.phone
-    const verifyCode = data.verifyCode
-    const createTime = new Date().getTime()
-    console.log(verifyCodeMap[phone].verifyCode, verifyCode)
-    if (!verifyCodeMap[phone] || verifyCodeMap[phone].verifyCode !== verifyCode) {
-      ctx.body = {code: 500, message: '验证码错误'}
-      return
+    const data = ctx.request.body.data[0];
+    const phone = data.phone;
+    const verifyCode = data.verifyCode;
+    const createTime = new Date().getTime();
+    console.log(verifyCodeMap[phone].verifyCode, verifyCode);
+    if (
+      !verifyCodeMap[phone] ||
+      verifyCodeMap[phone].verifyCode !== verifyCode
+    ) {
+      ctx.body = { code: 500, message: "验证码错误" };
+      return;
     }
-    await query(`INSERT INTO vip (phone, createTime) VALUES ( ?, ? )`, [phone, createTime])
-    ctx.body = {code: 200, message: '注册成功'}
-  } catch(err) {
-    throw new Error(err)
+    await query(`INSERT INTO vip (phone, createTime) VALUES ( ?, ? )`, [
+      phone,
+      createTime
+    ]);
+    ctx.body = { code: 200, message: "注册成功" };
+  } catch (err) {
+    throw new Error(err);
   }
-})
+});
 
-router.post('/loginVip', async (ctx) => {
+router.post("/loginVip", async ctx => {
   try {
-    const data = ctx.request.body.data
-    const phone = data.phone
-    const verifyCode = data.verifyCode
-    const createTime = new Date().getTime()
-    if (!verifyCodeMap[phone] || verifyCodeMap[phone].verifyCode !== verifyCode) {
-      ctx.body = {code: 500, message: '验证码错误'}
-      return
+    const data = ctx.request.body.data;
+    const phone = data.phone;
+    const verifyCode = data.verifyCode;
+    const createTime = new Date().getTime();
+    if (
+      !verifyCodeMap[phone] ||
+      verifyCodeMap[phone].verifyCode !== verifyCode
+    ) {
+      ctx.body = { code: 500, message: "验证码错误" };
+      return;
     }
-    let result = await query(`SELECT * FROM vip WHERE phone = ? AND off != 1`, [phone])
+    let result = await query(`SELECT * FROM vip WHERE phone = ? AND off != 1`, [
+      phone
+    ]);
     if (result.length === 0) {
-      await query(`INSERT INTO vip (phone, status, createTime) VALUES ( ?, ?, ? )`, [phone, 1, createTime])
-      result = await query(`SELECT * FROM vip WHERE phone = ? AND off != 1`, [phone])
+      await query(
+        `INSERT INTO vip (phone, status, createTime) VALUES ( ?, ?, ? )`,
+        [phone, 1, createTime]
+      );
+      result = await query(`SELECT * FROM vip WHERE phone = ? AND off != 1`, [
+        phone
+      ]);
     } else {
-      if (result[0].status == '1') {
-        clearTimeout(verifyCodeMap[phone].intervalTime)
-        delete verifyCodeMap[phone]
-        ctx.body = {code: 500, message: '已登陆，请先注销'}
-        return 
+      if (result[0].status == "1") {
+        clearTimeout(verifyCodeMap[phone].intervalTime);
+        delete verifyCodeMap[phone];
+        ctx.body = { code: 500, message: "已登陆，请先注销" };
+        return;
       }
     }
-    await query(`UPDATE vip SET status = ? WHERE phone = ? AND off != 1`, [1, phone])
-    clearTimeout(verifyCodeMap[phone].intervalTime)
-    delete verifyCodeMap[phone]
-    ctx.body = {code: 200, message: result}
-  } catch(err) {
-    throw new Error(err)
+    await query(`UPDATE vip SET status = ? WHERE phone = ? AND off != 1`, [
+      1,
+      phone
+    ]);
+    clearTimeout(verifyCodeMap[phone].intervalTime);
+    delete verifyCodeMap[phone];
+    ctx.body = { code: 200, message: result };
+  } catch (err) {
+    throw new Error(err);
   }
-})
+});
 
-router.post('/logoutVip', async (ctx) => {
+router.post("/logoutVip", async ctx => {
   try {
-    const data = ctx.request.body.data
-    const phone = data.phone
-    await query(`UPDATE vip SET status = ? WHERE phone = ? AND off != 1`, [0, phone])
-    ctx.body = {code: 200}
-  } catch(err) {
-    throw new Error(err)
+    const data = ctx.request.body.data;
+    const phone = data.phone;
+    await query(`UPDATE vip SET status = ? WHERE phone = ? AND off != 1`, [
+      0,
+      phone
+    ]);
+    ctx.body = { code: 200 };
+  } catch (err) {
+    throw new Error(err);
   }
-})
+});
 
-router.post('/getVip', async (ctx) => {
+router.post("/getVip", async ctx => {
   try {
-    if (!checkRoot(ctx, true)) { return false }
+    if (!checkRoot(ctx, true)) {
+      return false;
+    }
 
-    const data = ctx.request.body.data
-    const phone = data.phone
-    let result = []
-    let temp
-    let count
-    if (phone == undefined || phone == '') {
-      const countResult = await query(`SELECT COUNT(*) as count FROM vip WHERE off != 1`)
-      count = countResult[0].count
+    const data = ctx.request.body.data;
+    const phone = data.phone;
+    let result = [];
+    let temp;
+    let count;
+    if (phone == undefined || phone == "") {
+      const countResult = await query(
+        `SELECT COUNT(*) as count FROM vip WHERE off != 1`
+      );
+      count = countResult[0].count;
       temp = await query(`SELECT v.phone, v.balance, v.createTime, v.record, o.totalPrice, o.discount, o.createTime as consumeTime
         FROM vip as v 
         LEFT JOIN roomorder as o on o.vip = v.phone
         WHERE v.off != 1
-        ORDER BY v.createTime ASC`)
+        ORDER BY v.createTime ASC`);
     } else {
-      temp = await query(`SELECT v.phone, v.balance, v.createTime, v.record, o.totalPrice, o.discount, o.createTime as consumeTime
+      temp = await query(
+        `SELECT v.phone, v.balance, v.createTime, v.record, o.totalPrice, o.discount, o.createTime as consumeTime
         FROM vip as v 
         LEFT JOIN roomorder as o on o.vip = ?
         WHERE v.phone = ? AND v.off != 1
-        ORDER BY v.createTime ASC`, [phone, phone])
-      count = 1
+        ORDER BY v.createTime ASC`,
+        [phone, phone]
+      );
+      count = 1;
     }
-    let phoneMap = {}
+    let phoneMap = {};
     temp.forEach(ele => {
       if (phoneMap[ele.phone] == undefined) {
-        phoneMap[ele.phone] = []
+        phoneMap[ele.phone] = [];
       }
-      phoneMap[ele.phone].push(ele)
+      phoneMap[ele.phone].push(ele);
     });
     for (let key in phoneMap) {
-      const phoneList = phoneMap[key]
-      let recentConsumeTime = ''
-      let recentConsumeMoney = 0
-      let totalTime = 0
-      let totalMoney = 0
+      const phoneList = phoneMap[key];
+      let recentConsumeTime = "";
+      let recentConsumeMoney = 0;
+      let totalTime = 0;
+      let totalMoney = 0;
       if (phoneList.length === 1 && !phoneList[0].totalPrice) {
-        totalTime = 0
+        totalTime = 0;
       } else {
-        totalTime = phoneList.length
+        totalTime = phoneList.length;
       }
       phoneList.sort((a, b) => {
-        return b.consumeTime - a.consumeTime
-      })
-      recentConsumeTime = phoneList[0].consumeTime || ''
-      recentConsumeMoney = Number(phoneList[0].totalPrice) - Number(phoneList[0].discount)
+        return b.consumeTime - a.consumeTime;
+      });
+      recentConsumeTime = phoneList[0].consumeTime || "";
+      recentConsumeMoney =
+        Number(phoneList[0].totalPrice) - Number(phoneList[0].discount);
       phoneList.forEach(ele => {
-        totalMoney += Number(ele.totalPrice) - Number(ele.discount)
-      })
-      let obj = phoneList[0]
-      obj.recentConsumeTime = recentConsumeTime
-      obj.recentConsumeMoney = recentConsumeMoney
-      obj.totalTime = totalTime
-      obj.totalMoney = totalMoney
-      delete obj.consumeTime
-      delete obj.discount
-      delete obj.totalPrice
-      result.push(obj)
+        totalMoney += Number(ele.totalPrice) - Number(ele.discount);
+      });
+      let obj = phoneList[0];
+      obj.recentConsumeTime = recentConsumeTime;
+      obj.recentConsumeMoney = recentConsumeMoney;
+      obj.totalTime = totalTime;
+      obj.totalMoney = totalMoney;
+      delete obj.consumeTime;
+      delete obj.discount;
+      delete obj.totalPrice;
+      result.push(obj);
     }
     result.sort((a, b) => {
-      return a.createTime - b.createTime
-    })
-    ctx.body = {code: 200, message: result, count: count}
-  } catch(err) {
-    throw new Error(err)
+      return a.createTime - b.createTime;
+    });
+    ctx.body = { code: 200, message: result, count: count };
+  } catch (err) {
+    throw new Error(err);
   }
-})
+});
 
-router.post('/recharge', async (ctx) => {
+router.post("/recharge", async ctx => {
   try {
-    if (!checkRoot(ctx, true)) { return false }
-
-    const data = ctx.request.body.data
-    const phone = data.phone
-    const rechargeMoney = data.rechargeMoney
-    const giveMoney = data.giveMoney || 0
-    const result = await query(`SELECT * FROM vip WHERE phone = '${phone}' AND off != 1`)
-    if (result.length === 0) {
-      ctx.body = {code: 500, message: '账户不存在'}
-      return 
+    if (!checkRoot(ctx, true)) {
+      return false;
     }
-    await query(`UPDATE vip SET balance = ?,
+
+    const data = ctx.request.body.data;
+    const phone = data.phone;
+    const rechargeMoney = data.rechargeMoney;
+    const giveMoney = data.giveMoney || 0;
+    const result = await query(
+      `SELECT * FROM vip WHERE phone = '${phone}' AND off != 1`
+    );
+    if (result.length === 0) {
+      ctx.body = { code: 500, message: "账户不存在" };
+      return;
+    }
+    await query(
+      `UPDATE vip SET balance = ?,
         record = ?
         WHERE phone = ? AND off != 1;
         INSERT into rechargerecord (phone, money, recharge, give, user, time) VALUES (?, ?, ?, ?, ?, ?)
-      `, [
-        Number(result[0].balance) + Number(rechargeMoney) + Number(giveMoney), Number(result[0].record + 1), phone,
-        phone, Number(rechargeMoney) + Number(giveMoney), rechargeMoney, giveMoney, ctx.session.userInfo.name, new Date().getTime()
+      `,
+      [
+        Number(result[0].balance) + Number(rechargeMoney) + Number(giveMoney),
+        Number(result[0].record + 1),
+        phone,
+        phone,
+        Number(rechargeMoney) + Number(giveMoney),
+        rechargeMoney,
+        giveMoney,
+        ctx.session.userInfo.name,
+        new Date().getTime()
       ]
-    )
-    ctx.body = {code: 200, message: '充值成功'}
-  } catch(err) {
-    throw new Error(err)
+    );
+    ctx.body = { code: 200, message: "充值成功" };
+  } catch (err) {
+    throw new Error(err);
   }
-})
+});
 
-router.post('/getRechargeRecord', async (ctx) => {
+router.post("/getRechargeRecord", async ctx => {
   try {
-    if (!checkRoot(ctx, true)) { return false }
+    if (!checkRoot(ctx, true)) {
+      return false;
+    }
 
-    const data = ctx.request.body.data
-    const phone = data.phone
-    const result = await query(`SELECT * FROM rechargerecord WHERE phone = '${phone}' AND off != 1 ORDER BY time ASC`)
-    ctx.body = {code: 200, message: result}
-  } catch(err) {
-    throw new Error(err)
+    const data = ctx.request.body.data;
+    const phone = data.phone;
+    const result = await query(
+      `SELECT * FROM rechargerecord WHERE phone = '${phone}' AND off != 1 ORDER BY time ASC`
+    );
+    ctx.body = { code: 200, message: result };
+  } catch (err) {
+    throw new Error(err);
   }
-})
+});
 
 // 商品寄存
-router.post('/deposit', async (ctx) => {
+router.post("/deposit", async ctx => {
   try {
-    if (!checkRoot(ctx, true)) { return false }
+    if (!checkRoot(ctx, true)) {
+      return false;
+    }
 
-    const data = ctx.request.body.data
-    const currentTime = new Date().getTime()
-    const nun = data.nun
-    const vip = data.vip
-    const goodsList = data.goodsList
-    await query(`DELETE FROM vipstock WHERE nun = ? AND vip = ? AND off != 1`, [nun, vip])
+    const data = ctx.request.body.data;
+    const currentTime = new Date().getTime();
+    const nun = data.nun;
+    const vip = data.vip;
+    const goodsList = data.goodsList;
+    await query(`DELETE FROM vipstock WHERE nun = ? AND vip = ? AND off != 1`, [
+      nun,
+      vip
+    ]);
     for (let i = 0, len = goodsList.length; i < len; i++) {
-      const item = goodsList[i]
-      const goods = item.goods
-      const qty = item.depositQty
+      const item = goodsList[i];
+      const goods = item.goods;
+      const qty = item.depositQty;
       if (qty != 0) {
-        await query(`INSERT INTO vipstock (nun, vip, goods, qty) VALUES (?, ?, ?, ?)`, [ nun, vip, goods, qty])
+        await query(
+          `INSERT INTO vipstock (nun, vip, goods, qty) VALUES (?, ?, ?, ?)`,
+          [nun, vip, goods, qty]
+        );
       }
     }
-    
-    ctx.body = {code: 200, message: '寄存成功'}
-  } catch(err) {
-    throw new Error(err)
-  }
-})
 
-router.post('/getDeposit', async (ctx) => {
+    ctx.body = { code: 200, message: "寄存成功" };
+  } catch (err) {
+    throw new Error(err);
+  }
+});
+
+router.post("/getDeposit", async ctx => {
   try {
-    if (!checkRoot(ctx, true)) { return false }
+    if (!checkRoot(ctx, true)) {
+      return false;
+    }
 
-    const data = ctx.request.body.data
-    const nun = data.nun
-    const vip = data.vip
-    const takeData = await query(`SELECT v.id, v.nun, v.vip, v.goods, v.qty as depositQty, g.name as goodsm, u.name as unitm
+    const data = ctx.request.body.data;
+    const nun = data.nun;
+    const vip = data.vip;
+    const takeData = await query(
+      `SELECT v.id, v.nun, v.vip, v.goods, v.qty as depositQty, g.name as goodsm, u.name as unitm
       FROM vipstock as v
       LEFT JOIN goods as g on g.id = v.goods
       LEFT JOIN unit as u on u.id = g.unit
-      WHERE v.nun = '' AND v.vip = ? AND v.off != 1`, [vip])
-    const depositData = await query(`SELECT v.nun, v.vip, v.goods, v.qty as depositQty, g.name as goodsm, u.name as unitm
+      WHERE v.nun = '' AND v.vip = ? AND v.off != 1`,
+      [vip]
+    );
+    const depositData = await query(
+      `SELECT v.nun, v.vip, v.goods, v.qty as depositQty, g.name as goodsm, u.name as unitm
       FROM vipstock as v
       LEFT JOIN goods as g on g.id = v.goods
       LEFT JOIN unit as u on u.id = g.unit
-      WHERE v.nun = ? AND v.vip = ? AND v.off != 1`, [nun, vip])
-    ctx.body = {code: 200, message: {depositData, takeData}}
-  } catch(err) {
-    throw new Error(err)
+      WHERE v.nun = ? AND v.vip = ? AND v.off != 1`,
+      [nun, vip]
+    );
+    ctx.body = { code: 200, message: { depositData, takeData } };
+  } catch (err) {
+    throw new Error(err);
   }
-})
+});
 
-module.exports = router
+module.exports = router;

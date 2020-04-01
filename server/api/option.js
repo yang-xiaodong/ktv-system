@@ -1,48 +1,50 @@
-const Router = require('koa-router')
-const router = new Router()
-const query = require('../database/init')
-const checkRoot = require('./root')
+const Router = require("koa-router");
+const router = new Router();
+const query = require("../database/init");
+const checkRoot = require("./root");
 
-router.post('/getOptions', async (ctx) => {
+router.post("/getOptions", async ctx => {
   try {
-    if (!checkRoot(ctx, true)) { return false }
-      
-    const checkResult = checkRoot(ctx)
-    if (checkResult.code === 500) {
-      ctx.body = checkResult
-      return
+    if (!checkRoot(ctx, true)) {
+      return false;
     }
 
-    const data = ctx.request.body.data
-    let result = {}
+    const checkResult = checkRoot(ctx);
+    if (checkResult.code === 500) {
+      ctx.body = checkResult;
+      return;
+    }
+
+    const data = ctx.request.body.data;
+    let result = {};
     if (data.unit) {
-      const unitList = await query(`SELECT * FROM unit WHERE off != 1`)
+      const unitList = await query(`SELECT * FROM unit WHERE off != 1`);
       unitList.forEach(ele => {
-        ele.value = ele.id + ''
-        ele.label = ele.name
+        ele.value = ele.id + "";
+        ele.label = ele.name;
       });
-      result.unitOptions = unitList
+      result.unitOptions = unitList;
     }
     if (data.roomType) {
-      const roomTypeList = await query(`SELECT * FROM roomtype WHERE off != 1`)
+      const roomTypeList = await query(`SELECT * FROM roomtype WHERE off != 1`);
       roomTypeList.forEach(ele => {
-        ele.value = ele.id + ''
-        ele.label = ele.name
+        ele.value = ele.id + "";
+        ele.label = ele.name;
       });
-      result.roomTypeOptions = roomTypeList
+      result.roomTypeOptions = roomTypeList;
     }
     if (data.goods) {
-      const goodsList = await query(`SELECT * FROM goods WHERE off != 1`)
+      const goodsList = await query(`SELECT * FROM goods WHERE off != 1`);
       goodsList.forEach(ele => {
-        ele.value = ele.id + ''
-        ele.label = ele.name
+        ele.value = ele.id + "";
+        ele.label = ele.name;
       });
-      result.goodsOptions = goodsList
+      result.goodsOptions = goodsList;
     }
-    ctx.body = {code: 200, message: result}
-  } catch(err) {
-    throw new Error(err)
+    ctx.body = { code: 200, message: result };
+  } catch (err) {
+    throw new Error(err);
   }
-})
+});
 
-module.exports = router
+module.exports = router;
