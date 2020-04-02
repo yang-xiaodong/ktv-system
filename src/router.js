@@ -52,36 +52,9 @@ export default new VueRouter({
           component: () => import("@/views/admin/reportForm")
         },
         {
-          path: "baseinfo",
-          name: "baseinfo",
-          component: () => import("@/views/admin/BaseInfo.vue"),
-          children: [
-            {
-              path: "roominfo",
-              name: "roominfo",
-              component: () => import("@/views/admin/RoomInfo.vue")
-            },
-            {
-              path: "roomtype",
-              name: "roomtype",
-              component: () => import("@/views/admin/RoomType.vue")
-            },
-            {
-              path: "goodsinfo",
-              name: "goodsinfo",
-              component: () => import("@/views/admin/GoodsInfo.vue")
-            },
-            {
-              path: "packageinfo",
-              name: "packageinfo",
-              component: () => import("@/views/admin/PackageInfo.vue")
-            },
-            {
-              path: "unitinfo",
-              name: "unitinfo",
-              component: () => import("@/views/admin/UnitInfo.vue")
-            }
-          ]
+          path: "goods",
+          name: "goods",
+          component: () => import("@/views/admin/Goods.vue")         
         },
         {
           path: "vip",

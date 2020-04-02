@@ -124,7 +124,7 @@ export default {
         if (res.data.code === 200) {
           res.data.message.type == "0"
             ? this.$router.push({ path: "/" })
-            : this.$router.push({ path: "/admin/baseinfo/roominfo" });
+            : this.$router.push({ path: "/admin/report" });
         }
       });
     },
@@ -205,7 +205,7 @@ export default {
             this.$Message.success(res.data.message);
             res.data.userInfo.type == "0"
               ? this.$router.push({ path: "/" })
-              : this.$router.push({ path: "/admin/baseinfo/roominfo" });
+              : this.$router.push({ path: "/admin/report" });
           } else {
             this.$Message.error(res.data.message);
           }

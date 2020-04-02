@@ -97,7 +97,7 @@ export default {
           icon: "icon-shezhi",
           text: "设置",
           index: "4",
-          to: "/admin/baseinfo/roominfo"
+          to: "/admin/report"
         });
       }
     }

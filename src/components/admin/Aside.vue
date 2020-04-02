@@ -72,8 +72,8 @@ export default {
         },
         {
           icon: "icon-shezhi",
-          index: "/admin/baseinfo/roominfo",
-          title: "基本设置"
+          index: "/admin/goods",
+          title: "商品设置"
         },
         {
           icon: "icon-vip-active",
